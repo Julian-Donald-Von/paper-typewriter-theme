@@ -1,10 +1,23 @@
-# Paper Typewriter — 老式打字机纸纹主题 for Typora
+# Paper Typewriter
 
-老式打字机风格的 Typora 主题：**做旧纸纹随文字 1:1 滚动、随光标视差**，Courier 系打字机字体 + 朱雀仿宋，明暗双模，护眼暖色。
+**老式打字机纸纹主题 for Typora** — 做旧纸纹随文字 1:1 滚动、随光标视差，Courier 系打字机字体 + 朱雀仿宋，明暗双模，护眼暖色。
 
-![浅色](demo/preview-light.png)
+**[▶ 在线 Demo](https://julian-donald-von.github.io/paper-typewriter-theme/demo/demo.html)** ｜ **[下载主题](https://github.com/Julian-Donald-Von/paper-typewriter-theme/archive/refs/heads/theme-source.zip)** ｜ [安装步骤](#一快速开始)
 
-![暗色](demo/preview-dark.png)
+| 浅色 | 暗色 |
+|:---:|:---:|
+| ![浅色预览](demo/preview-light.png) | ![暗色预览](demo/preview-dark.png) |
+
+| | |
+|---|---|
+| **纸纹** | 预烘焙纸纤维（feTurbulence + feDiffuseLighting）+ 中性噪点 + 四缘晕影，纸色零漂移（误差 0.5/255） |
+| **随动** | 纸张与文字 1:1 同步滚动；可选光标视差（CDP 注入，不改 Typora 本体） |
+| **字体** | Courier Prime / 朱雀仿宋 / TeX Gyre Cursor / Commit Mono / Patrick Hand / Zen Old Mincho / Gowun Batang，全部 SIL OFL 本地打包 |
+| **护眼** | 暖纸 `#f1ead8` + 暖墨 `#443d33`，正文对比 8.92:1，行高 1.8，纹理不改有效对比度 |
+| **兼容** | 打字机模式（最后一行居中）· 专注模式 · 源码模式 · 导出 PDF（自动切白纸黑墨）· 全部官方 UI 变量 |
+| **体积** | 主题本体 9.2MB（20 个 woff2 子集自带，离线可用） |
+
+> Demo 是**单文件自包含**的（CSS 与字体内嵌，2.3MB）——在线看或下载后双击都行，由 `demo/demo.md` 经 `tools/build_demo.py` 渲染生成。
 
 ---
 
@@ -21,7 +34,7 @@
 ### 看效果
 
 - Typora 里打开 `demo/demo.md`（覆盖全部排版元素）；
-- 或浏览器直接打开 `demo/demo.html`：**单文件自包含**（CSS 与字体全部内嵌成 data URI，2.4MB），双击即可看，不依赖任何外部文件；由 `demo/demo.md` 经 `tools/build_demo.py` 渲染生成（pymdown 扩展，`~~删除线~~`/`==高亮==`/任务列表/front matter 都按 Typora 语义还原；公式降级为等宽显示）。
+- 或浏览器直接打开 `demo/demo.html`：**单文件自包含**（在线版：<https://julian-donald-von.github.io/paper-typewriter-theme/demo/demo.html>）（CSS 与字体全部内嵌成 data URI，2.4MB），双击即可看，不依赖任何外部文件；由 `demo/demo.md` 经 `tools/build_demo.py` 渲染生成（pymdown 扩展，`~~删除线~~`/`==高亮==`/任务列表/front matter 都按 Typora 语义还原；公式降级为等宽显示）。
 
 ---
 
