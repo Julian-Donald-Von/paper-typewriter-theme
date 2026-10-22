@@ -1,3 +1,5 @@
+> English version: [README_EN.md](README_EN.md)
+
 # Paper Typewriter
 
 **老式打字机纸纹主题 for Typora** — 做旧纸纹随文字 1:1 滚动、随光标视差，Courier 系打字机字体 + 朱雀仿宋，明暗双模，护眼暖色。
@@ -15,7 +17,7 @@
 | **字体** | Courier Prime / 朱雀仿宋 / TeX Gyre Cursor / Commit Mono / Patrick Hand / Zen Old Mincho / Gowun Batang，全部 SIL OFL 本地打包 |
 | **护眼** | 暖纸 `#f1ead8` + 暖墨 `#443d33`，正文对比 8.92:1，行高 1.8，纹理不改有效对比度 |
 | **兼容** | 打字机模式（最后一行居中）· 专注模式 · 源码模式 · 导出 PDF（自动切白纸黑墨）· 全部官方 UI 变量 |
-| **体积** | 主题本体 9.2MB（20 个 woff2 子集自带，离线可用） |
+| **体积** | 主题本体 9.2MB（18 个 woff2 子集自带，离线可用） |
 
 > Demo 是**单文件自包含**的（CSS 与字体内嵌，2.3MB）——在线看或下载后双击都行，由 `demo/demo.md` 经 `tools/build_demo.py` 渲染生成。
 
@@ -34,7 +36,7 @@
 ### 看效果
 
 - Typora 里打开 `demo/demo.md`（覆盖全部排版元素）；
-- 或浏览器直接打开 `demo/demo.html`：**单文件自包含**（在线版：<https://julian-donald-von.github.io/paper-typewriter-theme/demo/demo.html>）（CSS 与字体全部内嵌成 data URI，2.4MB），双击即可看，不依赖任何外部文件；由 `demo/demo.md` 经 `tools/build_demo.py` 渲染生成（pymdown 扩展，`~~删除线~~`/`==高亮==`/任务列表/front matter 都按 Typora 语义还原；公式降级为等宽显示）。
+- 或浏览器直接打开 `demo/demo.html`：**单文件自包含**（在线版：<https://julian-donald-von.github.io/paper-typewriter-theme/demo/demo.html>）（CSS 与字体全部内嵌成 data URI，2.3MB），双击即可看，不依赖任何外部文件；由 `demo/demo.md` 经 `tools/build_demo.py` 渲染生成（pymdown 扩展，`~~删除线~~`/`==高亮==`/任务列表/front matter 都按 Typora 语义还原；公式降级为等宽显示）。
 
 ---
 
@@ -52,8 +54,9 @@ paper-typewriter-package/
 │  └─ build_demo.py              # 由 demo.md 生成自包含 demo.html
 ├─ demo/
 │  ├─ demo.md                    # 元素展示文档（Typora 打开）
-│  ├─ demo.html                  # 自包含静态预览（2.4MB，单文件可分发）
+│  ├─ demo.html                  # 自包含静态预览（2.3MB，单文件可分发）
 │  ├─ preview-light.png / preview-dark.png
+├─ README_EN.md
 ├─ README.md
 ```
 
