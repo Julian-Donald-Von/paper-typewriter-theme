@@ -1,0 +1,15 @@
+{
+  "name": "Paper Typewriter",
+  "author": "Dongle Feng",
+  "version": "1.0.0",
+  "description": "Vintage typewriter theme with layered paper-fiber texture that drifts as you scroll. Courier Prime + Zhuque Fangsong, Zen Old Mincho (JP) and Gowun Batang (KR) bundled. Eye-comfort warm palette, light & dark.",
+  "tags": [
+    "light",
+    "dark",
+    "typewriter",
+    "paper",
+    "vintage",
+    "cjk"
+  ],
+  "compatibleVersion": ">=1.0.0"
+}

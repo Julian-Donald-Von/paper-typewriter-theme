@@ -1,0 +1,852 @@
+/*
+ * Paper Typewriter — 老式打字机纸纹主题 for Typora
+ * =====================================================
+ * 纸纹系统（三层伪元素栈，Typora 无 DOM 注入能力）：
+ *   body::before / body::after = 纸纤维 a/b（预烘焙 SVG，multiply，随滚动视差）
+ *   html::before              = 噪点 grain（PNG 均值钉 128，overlay，零均值漂移）
+ *   html::after               = 做旧边缘晕影
+ * 快速调整入口：
+ *   [COLORS]  — 全部颜色变量（浅色 + 暗色）
+ *   [FONTS]   — 字体栈与 @font-face
+ *   [PAPER]   — 纸纹层与随动参数
+ *   [LAYOUT]  — 版心 / 行高
+ *   [ELEMENTS]— 标题 / 正文 / 代码 / 表格 / 引用 / 列表 / 图片
+ *   [UI]      — 侧边栏 / 大纲 / 源码模式 / 菜单 / 滚动条
+ *   [PRINT]   — 打印与导出
+ */
+
+/* ============================================================
+   [FONTS] — @font-face 本地打包（可随主题分发）
+   正文：Courier Prime（拉丁）+ 朱雀仿宋（汉字）/ Zen Old Mincho（假名）
+         / Gowun Batang（韩文）—— 沿用既有定案，不动
+   代码：Commit Mono（低对比几何骨架，笔画均匀如机械压印，与纸纹融合最好）
+   标题：TeX Gyre Cursor（Courier 正统重制，粗重有力量，四式齐全撑 h1–h6）
+   手写：Patrick Hand（英文旁批，手写度 2/5、零连笔）
+         霞鹜文楷 GB（中文旁批，正楷零连笔，28237 字形）
+   ============================================================ */
+@font-face {
+  font-family: 'Courier Prime';
+  font-style: normal; font-weight: 400;
+  src: url('./paper-typewriter/fonts/courier-prime-regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Courier Prime';
+  font-style: italic; font-weight: 400;
+  src: url('./paper-typewriter/fonts/courier-prime-italic.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Courier Prime';
+  font-style: normal; font-weight: 700;
+  src: url('./paper-typewriter/fonts/courier-prime-bold.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Courier Prime';
+  font-style: italic; font-weight: 700;
+  src: url('./paper-typewriter/fonts/courier-prime-bolditalic.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Zhuque Fangsong';
+  font-style: normal; font-weight: 400;
+  src: url('./paper-typewriter/fonts/zhuque-fangsong-regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Zen Old Mincho';
+  font-style: normal; font-weight: 400;
+  src: url('./paper-typewriter/fonts/zen-old-mincho-regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Zen Old Mincho';
+  font-style: normal; font-weight: 600;
+  src: url('./paper-typewriter/fonts/zen-old-mincho-semibold.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Gowun Batang';
+  font-style: normal; font-weight: 400;
+  src: url('./paper-typewriter/fonts/gowun-batang-regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Gowun Batang';
+  font-style: normal; font-weight: 700;
+  src: url('./paper-typewriter/fonts/gowun-batang-bold.woff2') format('woff2');
+}
+
+/* —— 代码：Commit Mono（SIL OFL 1.1）—— */
+@font-face {
+  font-family: 'Commit Mono';
+  font-style: normal; font-weight: 400;
+  src: url('./paper-typewriter/fonts/code-commit-mono-regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Commit Mono';
+  font-style: italic; font-weight: 400;
+  src: url('./paper-typewriter/fonts/code-commit-mono-italic.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Commit Mono';
+  font-style: normal; font-weight: 700;
+  src: url('./paper-typewriter/fonts/code-commit-mono-bold.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Commit Mono';
+  font-style: italic; font-weight: 700;
+  src: url('./paper-typewriter/fonts/code-commit-mono-bolditalic.woff2') format('woff2');
+}
+
+/* —— 标题：TeX Gyre Cursor（GUST / LPPL 1.3c+）—— */
+@font-face {
+  font-family: 'TeX Gyre Cursor';
+  font-style: normal; font-weight: 400;
+  src: url('./paper-typewriter/fonts/head-texgyrecursor-regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'TeX Gyre Cursor';
+  font-style: italic; font-weight: 400;
+  src: url('./paper-typewriter/fonts/head-texgyrecursor-italic.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'TeX Gyre Cursor';
+  font-style: normal; font-weight: 700;
+  src: url('./paper-typewriter/fonts/head-texgyrecursor-bold.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'TeX Gyre Cursor';
+  font-style: italic; font-weight: 700;
+  src: url('./paper-typewriter/fonts/head-texgyrecursor-bolditalic.woff2') format('woff2');
+}
+
+/* —— 手写旁批：Patrick Hand（英文，SIL OFL 1.1）—— */
+@font-face {
+  font-family: 'Patrick Hand';
+  font-style: normal; font-weight: 400;
+  src: url('./paper-typewriter/fonts/hand-patrick-hand-regular.woff2') format('woff2');
+}
+
+/* ============================================================
+   [COLORS] — 颜色变量
+   纸色说明：--paper-raw 是乘算输入色，经纤维层 multiply（均值 0.968）
+   后得到有效纸色 --paper（#f1ead8）。改 --paper 时需同步重算
+   --paper-raw = --paper / 0.968，否则纸色会漂移。
+   护眼设计：暖纸（无纯白眩光、低蓝光）+ 暖墨（不用纯黑）
+   + 正文对比度 ≈9:1（AAA 与舒适度的平衡点）。
+   ============================================================ */
+:root {
+  /* 纸 */
+  --paper-raw:                  #f9f2df;  /* ×0.968 = #f1ead8 */
+  --paper:                      #f1ead8;  /* 有效纸色（观感） */
+  --paper-2:                    #e9e1c9;  /* 代码底 / 表头 */
+  --paper-3:                    #f6f0dd;  /* 斑马纹 / 图片底 */
+  /* 墨（色带） */
+  --ink:                        #443d33;  /* 正文，对比 ≈9:1 */
+  --ink-deep:                   #2e2921;  /* 标题 */
+  --ink-meta:                   #6f6455;  /* 元内容 / 脚注 / #号（≥4.5:1） */
+  --ribbon:                     #a8442f;  /* 色带红：del / 引用边 / hover */
+  --link:                       #3d4e5e;  /* 墨蓝黑 */
+  --select:                     #d9cfae;  /* 选中 */
+  --mark:                       #e3d5a3;  /* ==高亮== */
+  /* 线 */
+  --line:                       #c9bb95;
+  --line-soft:                  #d8cfb4;
+  /* 侧边栏 / UI */
+  --side-bg:                    #ece4cd;
+  --side-active:                #dcd2b2;
+  --side-hover:                 #e2dac2;
+  --scrollbar:                  #c5b98f;
+  --control-text:               #4a4438;
+
+  /* ===== Typora 官方 UI 变量表 =====
+     不定义这些变量，全部原生 UI（设置面板/对话框/按钮/输入框/
+     侧边栏/菜单）会掉回 Typora 默认白底蓝钮，与纸面割裂；
+     暗色模式下更会出现深色字配深色底（不可读）与白底刺眼块。
+     取值全部映射到纸族色板，对比度已验证（见 tools/ui-audit）。 */
+  --bg-color:                   #f6f0dd;  /* UI 面板底：比编辑器纸略亮，形成层次 */
+  --text-color:                 #443d33;
+  --control-text-color:         #4a4438;
+  --control-text-hover-color:   #2e2921;
+  --primary-color:              #3d4e5e;  /* 墨蓝黑：公文式主按钮 */
+  --primary-btn-text-color:     #f6f0dd;
+  --primary-btn-border-color:   #2c3a46;
+  --item-hover-bg-color:        #e2d9bd;
+  --item-hover-text-color:      #2e2921;
+  --active-file-bg-color:       #d9cfae;
+  --active-file-text-color:     #241f19;
+  --active-file-border-color:   #a8442f;  /* 活动文件色带红左边线 */
+  --active-toggle-btn-color:    #a89c84;
+  --window-border:              #c9bb95;
+  --panel-border-color:         #c9bb95;
+  --border-color:               #c9bb95;
+  --table-border-color:         #c9bb95;
+  --rawblock-edit-panel-bd:     #c9bb95;
+  --md-char-color:              #8a7d68;
+  --heading-char-color:         #8a7d68;
+  --meta-content-color:         #6f6455;  /* ≥4.5:1（UI 小字） */
+  --blur-text-color:            #a89c84;
+  --side-bar-menu-active-tint:  #a8442f;
+  --search-select-bg-color:     #e3d5a3;
+  --search-select-text-color:   #2e2921;
+  --select-text-bg-color:       #d9cfae;
+  --select-text-font-color:     #2e2921;
+  --focus-ring-color:           #3d4e5e;
+  --node-fill:                  #a89c84;
+  --drag-placeholder-color:     #c9bb95;
+  --monospace:                  'Courier Prime', 'Courier New', monospace;
+  --side-bar-bg-color:          var(--side-bg);  /* 侧栏底（官方变量，双消费者） */
+
+  /* 版式 */
+  --base-font-size:             16px;
+  --base-line-height:           1.8;
+  --content-width:              860px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* 碳纸暗色：--paper-raw ×0.848 = #22201b */
+    --paper-raw:                #282520;
+    --paper:                    #22201b;
+    --paper-2:                  #2b2820;
+    --paper-3:                  #2e2b23;
+    --ink:                      #d8cfbb;  /* 暖灰墨，对比 ≈10:1，夜间低亮 */
+    --ink-deep:                 #e8e0cd;
+    --ink-meta:                 #968c76;
+    --ribbon:                   #c05b3f;
+    --link:                     #9aa9b5;
+    --select:                   #4a4433;
+    --mark:                     #574a26;
+    --line:                     #454034;
+    --line-soft:                #3a362d;
+    --side-bg:                  #1c1b16;
+    --side-active:              #332f26;
+    --side-hover:                #26241d;
+    --scrollbar:                #3d392e;
+    --control-text:             #b5ad9c;
+
+    /* ===== Typora 官方 UI 变量表（暗色：碳纸族） ===== */
+    --bg-color:                 #2b2820;  /* 面板略亮于纸 #22201b，形成层次 */
+    --text-color:               #d8cfbb;
+    --control-text-color:       #b5ad9c;
+    --control-text-hover-color: #e8e0cd;
+    --primary-color:            #93a5b5;
+    --primary-btn-text-color:   #1c1b16;
+    --primary-btn-border-color: #7d8fa0;
+    --item-hover-bg-color:      #38342a;
+    --item-hover-text-color:    #e8e0cd;
+    --active-file-bg-color:     #4a4433;
+    --active-file-text-color:   #f0e8d4;
+    --active-file-border-color: #c05b3f;
+    --active-toggle-btn-color:  #5a5344;
+    --window-border:            #454034;
+    --panel-border-color:       #454034;
+    --border-color:             #454034;
+    --table-border-color:       #454034;
+    --rawblock-edit-panel-bd:   #454034;
+    --md-char-color:            #968c76;
+    --heading-char-color:       #968c76;
+    --meta-content-color:       #a39a86;
+    --blur-text-color:          #6f6858;
+    --side-bar-menu-active-tint:#c05b3f;
+    --search-select-bg-color:   #574a26;
+    --search-select-text-color: #e8e0cd;
+    --select-text-bg-color:     #4a4433;
+    --select-text-font-color:   #f0e8d4;
+    --focus-ring-color:         #93a5b5;
+    --node-fill:                #6f6858;
+    --drag-placeholder-color:   #454034;
+    --side-bar-bg-color:        var(--side-bg);
+  }
+}
+
+/* ============================================================
+   [FONTS] — 字体栈
+   按字符回退：拉丁→Courier Prime；汉字→朱雀仿宋（含繁体）；
+   假名→Zen Old Mincho；韩文→Gowun Batang。
+   日文汉字若朱雀未收（日式独有字形）自动落到 Zen。
+   ============================================================ */
+:root {
+  --font-latin:  'Courier Prime', 'Courier New', Courier, monospace;
+  --font-body:   'Courier Prime', 'Zhuque Fangsong', 'Zen Old Mincho',
+                 'Gowun Batang', 'FangSong', '仿宋', 'STFangsong', serif;
+  --font-mono:   'Courier Prime', 'Zhuque Fangsong', 'Zen Old Mincho',
+                 'Gowun Batang', 'Courier New', monospace;
+
+  /* 代码：Commit Mono 拉丁 + 中文回退（Commit Mono 无中文字形，
+     中文注释/字符串自动落到朱雀仿宋，与正文同源保持纸面一致） */
+  --font-code:   'Commit Mono', 'Zhuque Fangsong', 'Zen Old Mincho',
+                 'Gowun Batang', 'Courier Prime', 'Courier New', monospace;
+
+  /* 标题：TeX Gyre Cursor 拉丁 + 中文回退到朱雀仿宋。
+     Cursor 是 Courier 的重制，笔画比 Courier Prime 更粗、字腔更紧，
+     粗重有力量，四式齐全（regular/italic/bold/bolditalic），
+     能撑住 h1–h6 全层级（Special Elite 只有单一字重，撑不住）。 */
+  --font-heading:'TeX Gyre Cursor', 'Zhuque Fangsong', 'Zen Old Mincho',
+                 'Gowun Batang', 'Courier Prime', 'Courier New', monospace;
+
+  /* 旁批：拉丁 Patrick Hand（手写度 2/5、零连笔，克制不花）；
+     汉字与正文同源用朱雀仿宋——拉丁配手写、中文配同款仿宋，
+     与「Courier Prime + 朱雀」「TeX Gyre Cursor + 朱雀」同一套回退逻辑。
+     （霞鹜文楷 GB 试用后弃用：只有 1291 字形，中文覆盖不全会造成混排。）*/
+  --font-hand:   'Patrick Hand', 'Zhuque Fangsong', 'Zen Old Mincho',
+                 'Gowun Batang', cursive;
+}
+
+/* ============================================================
+   [PAPER] — 纸纹层（三层伪元素栈 + 滚动视差 + 呼吸）
+   资产：paper-typewriter/img/ 下预烘焙 SVG 与 PNG。
+   浅色纤维均值 0.968（multiply 近中性，纸色零漂移）；
+   暗色纤维均值 0.848（multiply 在暗纸上动态余量小，需高对比噪点）。
+   ============================================================ */
+html {
+  background: var(--paper); /* 画布＝有效纸色，与纸纹区无接缝 */
+}
+body {
+  background: transparent; /* 纸色由 html 画布提供，body 必须透明，
+                              否则 body 背景会盖住负 z-index 的纸纹层。
+                              切勿给 body 加 position:relative —— Typora 的
+                              #CONTENT（编辑器滚动容器）是 absolute 定位、
+                              以初始包含块为基准，body 高度为 0，改了会整个塌掉。 */
+}
+
+/* 纸纤维：纸色底 + 预烘焙 SVG，multiply 混合。
+   只挂 #write::before —— #write::after 是 Typora 预置的行内占位块
+   （base-control.css: #write:after{content:"";font-size:0;display:block;height:0}），
+   打字机模式的 JS 靠改它的 height 把最后一行顶到屏幕中心，绝不能占用。
+   #write 在 Typora 的 <CONTENT> 滚动容器内部 ⇒ 纸张与文字 1:1 同步滚动。
+   注意：伪元素不要上下外扩（top/bottom:0）—— 竖溢出的绝对定位元素会撑大
+   <CONTENT> 的滚动高度，打字机模式滚到底时最后一行会被顶偏 200px。
+   指针视差走 background-position（平铺图案无限延伸，永不露边）。
+   --paper-px/--paper-py 由随动脚本写入。 */
+#write::before {
+  content: "";
+  position: absolute;
+  top: 0; bottom: 0;
+  left: calc(50% - 50vw); right: calc(50% - 50vw);
+  z-index: -2;
+  pointer-events: none;
+  background-color: var(--paper-raw);
+  background-image: url('./paper-typewriter/img/paper-fiber-a.svg');
+  background-repeat: repeat;
+  background-size: 512px 512px;
+  background-blend-mode: multiply;
+  background-position: var(--paper-px, 0px) var(--paper-py, 0px);
+}
+
+@media (prefers-color-scheme: dark) {
+  #write::before { background-image: url('./paper-typewriter/img/paper-fiber-a-dark.svg'); }
+}
+
+/* 噪点：均值钉 128 的中性 PNG，overlay 下零均值漂移（不伤对比度） */
+html::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: url('./paper-typewriter/img/grain-tile.png');
+  background-repeat: repeat;
+  background-size: 512px 512px;
+  mix-blend-mode: overlay;
+  opacity: .5;
+}
+@media (prefers-color-scheme: dark) {
+  html::before { opacity: .35; }
+}
+
+/* 做旧边缘晕影：四缘轻微压暗，减少页面眩光（护眼） */
+html::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  box-shadow: inset 0 0 220px rgba(74, 58, 28, .10),
+              inset 0 0 60px  rgba(74, 58, 28, .05);
+}
+@media (prefers-color-scheme: dark) {
+  html::after { box-shadow: inset 0 0 220px rgba(0, 0, 0, .38); }
+}
+
+/* 光标随动：纸面随指针做视差位移。
+   Typora 主题只加载 CSS，无法自己读指针——由随动脚本把指针位置写进
+   --paper-px / --paper-py（见 paper-typewriter/follow/），脚本缺席时
+   纸张仍随文字滚动，视觉完整。 */
+@media (prefers-reduced-motion: reduce) {
+  /* 减少动态时不关闭纸纹本身，只让随动脚本不注入（脚本侧判断） */
+}
+
+/* 随动说明：
+   ① 纸面随文字移动 —— 纸层绝对定位在 body 上（文档锚定），滚动时与文字 1:1 同速，
+      像一整张纸铺在字下面（纯 CSS，无需脚本）。
+   ② 纸面随光标移动 —— 需要读指针位置，Typora 主题只加载 CSS 读不到，
+      由随动脚本把指针位置写进 --paper-px / --paper-py（见 paper-typewriter/follow/）。
+      脚本缺席时纸张仍与文字同步，视觉完整。 */
+
+
+/* ============================================================
+   [LAYOUT] — 全局基础
+   官方规范：字号放 html、元素用 rem（偏好面板调字号才生效）
+   ============================================================ */
+html {
+  font-size: var(--base-font-size);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+body {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: var(--base-line-height);
+  color: var(--ink);
+  caret-color: var(--ink);
+}
+
+/* 写作区域：背景必须透明，让纸纹层透上来 */
+#write {
+  max-width: var(--content-width);
+  margin: 0 auto;
+  padding: 3rem 3.5rem 9rem;
+  background: transparent;
+  color: var(--ink);
+}
+@media (max-width: 900px) {
+  #write { padding: 2rem 1.5rem 6rem; }
+}
+
+/* ============================================================
+   [ELEMENTS] — 标题
+   字体：TeX Gyre Cursor（Courier 重制，粗重有力量）
+   中文标题回退朱雀仿宋，与正文同源保持纸面一致。
+   ============================================================ */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  color: var(--ink-deep);
+  line-height: 1.4;
+  margin-top: 1.6em;
+  margin-bottom: .6em;
+}
+h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  border-bottom: 4px double var(--ink-deep); /* 打字机双下边线 */
+  padding-bottom: .3em;
+}
+h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: .25em;
+}
+h3 { font-size: 1.2rem;  font-weight: 700; }
+h4 { font-size: 1.05rem; font-weight: 700; }
+h5 { font-size: .95rem;  font-weight: 700; font-style: italic; }
+h6 { font-size: .9rem;   font-weight: 400; font-style: italic; color: var(--ink-meta); }
+
+/* 标题前的 # 号与 markdown 元字符淡化 */
+.md-heading:before,
+h1 .md-meta, h2 .md-meta, h3 .md-meta,
+h4 .md-meta, h5 .md-meta, h6 .md-meta,
+.md-meta {
+  color: var(--ink-meta);
+}
+
+/* ============================================================
+   [ELEMENTS] — 段落 / 行内强调
+   ============================================================ */
+p { margin-top: 0; margin-bottom: .9em; }
+
+strong {
+  font-weight: 700;
+  color: var(--ink-deep);
+  letter-spacing: .01em;
+}
+em { font-style: italic; color: var(--ink); }
+strong em, em strong { color: var(--ink-deep); }
+
+/* 删除线 = 色带红修正带 */
+del { color: var(--ribbon); }
+
+/* ==高亮== */
+mark {
+  background: var(--mark);
+  color: var(--ink-deep);
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+/* 链接：墨蓝黑 + 细 underline，hover 落色带红 */
+a {
+  color: var(--link);
+  text-decoration: underline;
+  text-decoration-color: var(--line);
+  text-underline-offset: 3px;
+  transition: color .15s ease;
+}
+a:hover {
+  color: var(--ribbon);
+  text-decoration-color: var(--ribbon);
+}
+
+/* 选中 */
+::selection {
+  background: var(--select);
+  color: var(--ink-deep);
+}
+::-moz-selection {
+  background: var(--select);
+  color: var(--ink-deep);
+}
+
+/* ============================================================
+   [ELEMENTS] — 代码
+   字体：Commit Mono（低对比几何骨架，笔画均匀如机械压印，
+   与纸纹噪点融合最好；x-height 0.495、混淆距 0.526）
+   ============================================================ */
+code {
+  font-family: var(--font-code);
+  font-size: .92em;
+  background: var(--paper-2);
+  color: var(--ink);
+  padding: 2px 6px;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+}
+.md-fences,
+pre {
+  font-family: var(--font-code);
+  font-size: .88em;
+  line-height: 1.6;
+  background: var(--paper-2);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 14px 18px;
+  margin: 1em 0;
+  overflow: auto;
+}
+.md-fences code,
+pre code {
+  background: transparent;
+  border: none;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit;
+}
+.md-fences .code-tooltip,
+.md-fences .md-lang {
+  font-family: var(--font-code);
+  color: var(--ink-meta);
+}
+/* YAML 头信息 */
+pre.md-meta-block {
+  font-family: var(--font-code);
+  font-size: .86em;
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 14px 18px;
+  color: var(--ink);
+}
+/* 源码模式（CodeMirror） */
+#typora-source .CodeMirror-lines {
+  font-family: var(--font-code);
+  font-size: .95rem;
+  line-height: var(--base-line-height);
+}
+.cm-s-typora-default .cm-header,
+.cm-s-typora-default .cm-comment { color: var(--ink-deep); }
+.cm-s-inner .cm-comment { color: var(--ink-meta); }
+.CodeMirror-activeline-background { background: rgba(0, 0, 0, .03); }
+@media (prefers-color-scheme: dark) {
+  .CodeMirror-activeline-background { background: rgba(255, 255, 255, .03); }
+}
+
+/* ============================================================
+   [ELEMENTS] — 引用 / 分割线 / 表格 / 列表 / 图片
+   ============================================================ */
+blockquote {
+  font-family: var(--font-hand);   /* 手写旁批：像用钢笔写在打印稿边上 */
+  font-style: normal;              /* 手写体自带倾斜，关掉合成斜体 */
+  font-size: 1.02em;
+  margin: 1em 0;
+  padding: 6px 20px;
+  border-left: 3px solid var(--ribbon); /* 色带红批注边 */
+  color: var(--ink);
+}
+blockquote p { margin-bottom: .4em; }
+blockquote blockquote {
+  border-left-color: var(--line);
+  color: var(--ink-meta);
+}
+
+hr {
+  border: none;
+  border-top: 3px double var(--line); /* 老式文档分隔线 */
+  margin: 2em 0;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+  font-size: .92em;
+  font-variant-numeric: tabular-nums;
+}
+table th {
+  background: var(--paper-2);
+  color: var(--ink-deep);
+  font-weight: 700;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  text-align: left;
+}
+table td {
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+table tr:nth-child(even) td { background: var(--paper-3); }
+table tr:hover td { background: var(--select); }
+
+ul, ol { padding-left: 2em; margin: .6em 0; }
+li { margin-bottom: .25em; }
+li > ul, li > ol { margin-top: .25em; }
+
+/* 任务列表：手写对勾 */
+.task-list-item { list-style: none; margin-left: -1.5em; }
+.md-task-list-item > input:before {
+  content: '\221A';
+  display: inline-block;
+  width: 1.25rem;
+  text-align: center;
+  color: var(--ink-meta);
+}
+.md-task-list-item > input:checked:before,
+.md-task-list-item > input[checked]:before {
+  color: var(--ribbon);
+}
+.md-task-list-item > input { margin-right: 8px; }
+
+/* 图片：贴纸相框 */
+img {
+  max-width: 100%;
+  border: 1px solid var(--line);
+  padding: 4px;
+  background: var(--paper-3);
+}
+
+/* 脚注 / 目录 —— 手写旁批，像用铅笔写在页脚 */
+.md-footnote,
+.md-def-name,
+.md-def-footnote {
+  font-family: var(--font-hand);
+  font-size: .92em;
+}
+sup.md-footnote { color: var(--ink-meta); }
+.md-footnote .md-meta { color: var(--ink-meta); }
+.md-toc { margin: 1em 0; }
+.md-toc-item { color: var(--ink); }
+
+/* 数学公式块 */
+.md-math-block, .md-rawblock { font-family: var(--font-code); }
+
+/* ============================================================
+   [UI] — 侧边栏 / 大纲 / 状态栏 / 菜单 / 模态 / 滚动条
+   ============================================================ */
+#typora-sidebar,
+.sidebar-content,
+.file-list,
+.file-node,
+.typora-file-list,
+#file-library {
+  background-color: var(--side-bg);
+  color: var(--control-text);
+  font-family: var(--font-body);
+}
+.file-node-content,
+.file-list-item,
+.file-library-file-node { font-size: .9em; }
+.file-list-item.active,
+.file-node.active .file-node-content,
+.file-library-file-node.active {
+  background-color: var(--side-active) !important;
+  color: var(--ink-deep) !important;
+}
+.file-list-item:hover,
+.file-node:hover .file-node-content,
+.file-library-file-node:hover {
+  background-color: var(--side-hover);
+  color: var(--ink-deep);
+}
+.sidebar-tabs,
+.sidebar-tab,
+.typora-sidebar-title {
+  font-family: var(--font-body);
+  color: var(--control-text);
+}
+#file-library-search-input,
+.sidebar-search-input {
+  font-family: var(--font-body);
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 4px 10px;
+}
+.outline-content,
+.outline-item { font-family: var(--font-body); color: var(--control-text); }
+.outline-item:hover { color: var(--ink-deep); }
+.outline-item .outline-active { color: var(--ink-deep); }
+
+#typora-footer,
+.typora-status-bar,
+.status-bar {
+  font-family: var(--font-body);
+  background-color: var(--side-bg);
+  color: var(--control-text);
+  border-top: 1px solid var(--line);
+}
+
+.modal-content,
+.modal-header,
+.modal-footer,
+.typora-prompt {
+  font-family: var(--font-body);
+  background-color: var(--paper);
+  color: var(--ink);
+}
+.modal-header { border-bottom: 1px solid var(--line); }
+.modal-footer { border-top: 1px solid var(--line); }
+
+.context-menu,
+.menu-style,
+.dropdown-menu {
+  font-family: var(--font-body);
+  background-color: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
+.context-menu .menu-item:hover,
+.menu-item:hover { background-color: var(--side-active); }
+
+/* Windows 一体化窗口标题栏 / 大菜单 */
+.megamenu-menu,
+#top-titlebar, #top-titlebar *,
+.megamenu-content {
+  background: var(--paper); /* 与编辑器有效纸色一致，开合菜单无割裂 */
+  color: var(--ink);
+  font-family: var(--font-body);
+}
+.megamenu-menu-header { border-bottom: 1px dashed var(--line); }
+.megamenu-menu { box-shadow: none; border-right: 1px dashed var(--line); }
+.megamenu-menu-list li a:hover,
+.megamenu-menu-list li a.active {
+  color: inherit;
+  background-color: var(--side-hover);
+}
+
+/* 滚动条 */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover { background-color: var(--line); }
+
+/* 专注模式：Typora 官方规则（base-control.css 的 on-focus-mode 系列，!important）
+   只淡化 .md-end-block 的子元素与 li[cid]，块自身的裸文本漏掉；
+   这里按 retro 主题的选择器写法补上「块本身」，颜色统一走官方变量
+   --blur-text-color（已在 [COLORS] 配成纸族色），不再叠 opacity——
+   否则会和官方的颜色淡化双重发灰。*/
+.on-focus-mode .md-end-block:not(.md-focus):not(.md-focus-container),
+.on-focus-mode li[cid]:not(.md-focus-container) {
+  color: var(--blur-text-color);
+}
+.on-focus-mode .md-focus,
+.on-focus-mode .md-focus-container {
+  color: var(--text-color);
+}
+
+/* ============================================================
+   [UI-VARS] — 官方变量对齐后的控件修正
+   Typora 原生 UI 已由上面的官方变量表驱动；此处兜底
+   bootstrap 残留基底（.btn-default / .long-btn / .form-control
+   继承链），并统一模态框与提示文字。
+   ============================================================ */
+
+/* 按钮：对话框按钮 + megamenu 大按钮（图标式裸 .btn 不碰） */
+button.btn, .btn-default, .long-btn {
+  background: var(--bg-color);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  text-shadow: none;
+}
+button.btn:hover, .btn-default:hover, .long-btn:hover,
+button.btn:focus, .btn-default:focus, .long-btn:focus {
+  background: var(--item-hover-bg-color);
+  color: var(--item-hover-text-color);
+  border-color: var(--border-color);
+}
+.btn-primary, button.btn.btn-primary {
+  background: var(--primary-color);
+  color: var(--primary-btn-text-color);
+  border-color: var(--primary-btn-border-color);
+}
+.btn-primary:hover, .btn-primary:focus {
+  background: var(--primary-color);
+  color: var(--primary-btn-text-color);
+  border-color: var(--primary-btn-border-color);
+  filter: brightness(1.12);
+}
+
+/* 表单控件：bootstrap .form-control 是 color/background inherit，
+   不显式落地就会漏出默认白底（暗色下尤其刺眼） */
+input:not([type=checkbox]):not([type=radio]),
+select, textarea, .form-control, .input-group-addon {
+  background: var(--bg-color);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+}
+.input-group-addon { background: var(--paper-2); color: var(--ink-meta); }
+input:not([type=checkbox]):not([type=radio]):focus,
+select:focus, textarea:focus, .form-control:focus {
+  border-color: var(--primary-color);
+  outline-color: var(--focus-ring-color);
+}
+
+/* 模态对话框 */
+.modal-content { background: var(--bg-color); border: 1px solid var(--window-border); }
+.modal-header, .modal-footer { border-color: var(--window-border); }
+.modal-title { color: var(--ink-deep); }
+.modal-body { color: var(--text-color); }
+
+/* 辅助提示 / 关闭按钮 / 最近文件表头 */
+.preference-item-hint { color: var(--meta-content-color); }
+.close { color: var(--control-text-color); opacity: .75; text-shadow: none; }
+.close:hover { color: var(--control-text-hover-color); opacity: 1; }
+#recent-file-panel thead th, .ty-table-edit thead th {
+  background: var(--paper-2);
+  color: var(--ink-deep);
+}
+
+/* 焦点环 */
+.file-node-content:focus, .file-list-item:focus { outline-color: var(--focus-ring-color); }
+
+/* ============================================================
+   [PRINT] — 打印 / 导出 PDF：白纸黑墨，剥离全部纹理
+   ============================================================ */
+@media print {
+  html, body { background: #fff !important; }
+  body::before, body::after,
+  html::before, html::after { display: none !important; }
+  #write { color: #1a1a1a; max-width: 100%; padding: 0; }
+  a { color: #1a1a1a; }
+  .md-fences, pre { background: #f5f5f5; border-color: #ccc; }
+  code { background: #f5f5f5; border-color: #ccc; }
+}
+
+/* ============================================================
+   减少动态：关闭呼吸与视差，保留静态纸纹
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  body::after { animation: none; opacity: 0; }
+  body::before, body::after { transition: none; }
+}
